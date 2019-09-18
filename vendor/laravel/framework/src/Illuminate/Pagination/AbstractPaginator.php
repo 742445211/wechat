@@ -154,7 +154,10 @@ abstract class AbstractPaginator implements Htmlable
             $parameters = array_merge($this->query, $parameters);
         }
 
-        $class=preg_replace("/\\d+/",'', $this->path);
+        if(strpos($this->path,'https') == false){
+            $class=str_replace("http",'https', $this->path);
+            //$class = $this->path;
+        }
 
         return $class
                         .(Str::contains($this->path, '?') ? '&' : '?')

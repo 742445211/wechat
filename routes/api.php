@@ -313,6 +313,13 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
         //获取招聘者发布过的工作
         Route::get('getWorkByRecruiter','Inter\Manage\ManageController@getWorkByRecruiter');
+
+
+        /**
+         * C端部分聊天接口
+         */
+        //获取消息记录，聊天记录下拉
+        Route::get('getGroupMsg','ZhaoXian\Msg\MsgController@getGroupMsg');
     });
 
 
