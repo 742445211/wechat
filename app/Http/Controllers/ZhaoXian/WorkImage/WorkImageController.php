@@ -109,8 +109,8 @@ class WorkImageController extends Controller
             'updated_at'        => date('Y-m-d H:i:s',time()),
         ];
         //$res = WorkImage::where('id',$request -> id) -> update($data);
-        $res = WorkImage::insert($data);
-        if($res) return ReturnJson::json('ok',0,'更新成功！');
+        $res = WorkImage::insertGetId($data);
+        if($res) return ReturnJson::json('ok',0,['id'=>$res,'image_path'=>$request->src]);
         return ReturnJson::json('err',1,'更新失败！');
     }
 
