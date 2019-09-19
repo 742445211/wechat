@@ -6,6 +6,7 @@ namespace App\Http\Controllers\ZhaoXian\WorkExperience;
 
 use App\Facades\ReturnJson;
 use App\Http\Controllers\Controller;
+use App\Model\Workers;
 use App\Model\WorkExperience;
 use Illuminate\Http\Request;
 
@@ -41,6 +42,16 @@ class WorkExperienceController extends Controller
             'intention_place'   => $request -> intention_place,     //意向地点
             'intention_time'    => $request -> intention_time,      //意向工作时间
         ];
+        //更新workers表的工作经验时长
+        go(function () use ($request){
+            \co::sleep(0.25);
+            $time = explode('~',$request->work_time);
+            $year = substr($time[0],0,4) - substr($time[1],0,4);
+            $now = Workers::where('id',$request->workerid) -> select('experience') -> first();
+            $now = $now->experience + $year;
+            Workers::where('id',$request->workerid) -> update(['experience' => $now]);
+        });
+
         $res = WorkExperience::insert($data);
         if($res) return ReturnJson::json('ok',0,'添加成功！');
         return ReturnJson::json('err',1,'添加失败！');
@@ -77,6 +88,18 @@ class WorkExperienceController extends Controller
             'intention_time'    => $request -> intention_time       //意向工作时间
         ];
         $res = WorkExperience::where('worker_id',$request->workerid) -> where('id',$request->id) -> update($data);
+        //更新workers表的工作经验时长
+        go(function () use ($request){
+            \co::sleep(0.25);
+            $all = WorkExperience::where('worker_id',$request->workerid) -> select('work_time') -> get() ->toArray();
+            $experience = 0;
+            foreach ($all as $value){
+                $time = explode('~',$value['experience']);
+                $experience += substr($time[0],0,4) - substr($time[1],0,4);
+            }
+            Workers::where('id',$request->workerid) -> update(['experience' => $experience]);
+        });
+
         if($res) return ReturnJson::json('ok',0,'修改成功！');
         return ReturnJson::json('err',1,'修改失败！');
     }
@@ -108,6 +131,18 @@ class WorkExperienceController extends Controller
         if($error) return $error;
 
         $res = WorkExperience::where('id',$request->id) -> where('worker_id',$request->workerid) -> delete();
+        //更新workers表的工作经验时长
+        go(function () use ($request){
+            \co::sleep(0.25);
+            $all = WorkExperience::where('worker_id',$request->workerid) -> select('work_time') -> get() ->toArray();
+            $experience = 0;
+            foreach ($all as $value){
+                $time = explode('~',$value['experience']);
+                $experience += substr($time[0],0,4) - substr($time[1],0,4);
+            }
+            Workers::where('id',$request->workerid) -> update(['experience' => $experience]);
+        });
+
         if($res) return ReturnJson::json('ok',0,'已删除');
         return ReturnJson::json('err',1,'删除失败！');
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Facades\ReturnJson;
+use App\Model\Workers;
 use Illuminate\Http\Request;
 use Intervention\Image\ImageManager;
 
@@ -126,12 +127,18 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::get('workDetail','ZhaoXian\Works\WorkController@workDetail');
         //修改工作详情
         Route::post('editDescribe','ZhaoXian\Works\WorkController@editDescribe');
+        //获取某B端用户的在招工作
+        Route::get('getRecruitWork','ZhaoXian\Works\WorkController@getRecruitWork');
+        //获取全部有意向（已报名及待面试）的员工
+        Route::get('allIntentionWorkers','Recruit\Manage\ManageController@allIntentionWorkers');
 
 
         //招聘端查看岗位详情,获取在职员工
         Route::get('workDetails','Recruit\Manage\ManageController@workDetails');
-        //获取待审核员工
+        //获取待面试员工
         Route::get('toBeAudited','Recruit\Manage\ManageController@toBeAudited');
+        //获取待审核员工
+        Route::get('enrolment','Recruit\Manage\ManageController@enrolment');
         //获取已离职员工
         Route::get('workQuit','Recruit\Manage\ManageController@workQuit');
         //查询收藏本工作的员工
@@ -154,6 +161,10 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::get('getWorkSignByWorker','ZhaoXian\Sign\SignController@getWorkSignByWorker');
         //通知面试
         Route::post('notifyInterview','Recruit\Manage\ManageController@notifyInterview');
+        //获取面试信息
+        Route::get('getInterviewDetail','ZhaoXian\Interview\InterviewController@getInterviewDetail');
+        //面试不通过
+        Route::post('refuse','Recruit\Manage\ManageController@refuse');
 
 
 
@@ -275,6 +286,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::get('getWorkerSignByMonth','ZhaoXian\Sign\SignController@getWorkerSignByMonth');
         //获取待面试工作
         Route::get('getMyToBeAuditedWork','Inter\Manage\ManageController@getMyToBeAuditedWork');
+        //获取面试信息
+        Route::get('getInterviewDetail','ZhaoXian\Interview\InterviewController@getInterviewDetail');
 
 
         //用户反馈接口
@@ -453,5 +466,6 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         $res = \App\Facades\SendSms::wxOcrIdCard('https://www.xiaoshetong.cn/upload_auth/2019-09-11/smN4LWoOLqvztly7cXG.jpg',510525199308210035,'王启枫');
         if($res) return ReturnJson::json('err',9,'身份证照与输入信息不匹配');
     });
+
 
     Route::get('getformid','ZhaoXian\FormId\FormIdController@getFormID');

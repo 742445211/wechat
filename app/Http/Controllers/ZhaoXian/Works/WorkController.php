@@ -85,7 +85,7 @@ class WorkController extends Controller
             'address'      => $request -> address,      //工作地址
             'deduct'       => $deduct,                  //应扣除时间
             'cycle'        => $request -> cycle,        //结算周期
-            'wages'        => $request -> wages,  //工资*100
+            'wages'        => $request -> wages,        //工资*100
             //'recruiter_id' => $request -> recruiter_id, //关联发布者ID
             'validity_time'=> $request -> validity_time,//招聘有效期
             'experience'   => $request -> experience,   //经验要求
@@ -206,6 +206,21 @@ class WorkController extends Controller
 
         $res = Works::with(['describe','workImage:id,work_id,work_image'])
             -> where('id',$request->id) -> first();
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,'获取失败');
+    }
+
+    /**
+     * 获取某B端用户的在招工作
+     * @param Request $request
+     * @return mixed
+     */
+    public function getRecruitWork(Request $request)
+    {
+        $error = ReturnJson::parameter(['id'],$request);
+        if($error) return $error;
+
+        $res = Works::where('recruiter_id',$request->id) -> where('status',0) -> select('id','title','header','type','cycle','wages','number','address','welfare') -> get();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败');
     }

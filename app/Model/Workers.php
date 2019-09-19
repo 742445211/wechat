@@ -42,7 +42,7 @@ class Workers extends Model
         return $this->hasMany('App\Model\WorkEducational','worker_id','id');
     }
 
-    public function experience()
+    public function experiences()
     {
         return $this->hasMany('App\Model\WorkExperience','worker_id','id');
     }

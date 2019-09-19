@@ -86,6 +86,7 @@ class ManageController extends Controller
         $data['hometown']     = $request -> hometown;   //家乡
         $data['education']    = $request -> education;  //学历
         $data['birthday']     = $request -> birthday;   //生日
+        $data['residence']    = $request -> residence;  //现住地址
         $data['created_at']   = date('Y-m-d H:m:i',time());
         $token = Hash::make($request -> openid);
         $res = Workers::insertGetId($data);
@@ -286,7 +287,7 @@ class ManageController extends Controller
 
             $res = Works::with('recruiters:id,openid')
                 -> where('id',$data['work_id'])
-                -> select('id','recruiter_id','title')
+                -> select('id','recruiter_id','title','recruitment')
                 -> first()
                 -> toArray();
             $name = Workers::where('id',$data['worker_id']) -> select('username') -> first();
@@ -298,11 +299,12 @@ class ManageController extends Controller
                 "data"          => [
                     "keyword1"      => ["value" => $res['title']],
                     "keyword2"      => ["value" => date('Y-m-d H:m:i',time())],
-                    "keyword3"      => ["value" => $name]
+                    "keyword3"      => ["value" => $name->username]
                 ]
                 //"emphasis_keyword" => ''
             ];
             $msg = FromId::sendRecruitFromid($result,$res['recruiters']['id']);
+            Works::where('id',$data['work_id']) -> update(['recruitment' => $res['recruitment'] + 1]);
         });
 
         $res = UserWork::insert($data);

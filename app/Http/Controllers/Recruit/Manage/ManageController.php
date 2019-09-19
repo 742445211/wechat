@@ -8,7 +8,9 @@ use App\Facades\FromId;
 use App\Facades\ReturnJson;
 use App\Facades\SendSms;
 use App\Model\Describe;
+use App\Model\Interview;
 use App\Model\WorksGeo;
+use function foo\func;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schema;
@@ -143,7 +145,7 @@ class ManageController extends Controller
             $data = Works::with('userWork:id,status,work_id')
                 -> where('recruiter_id',$request->id)
                 //-> where('status',0)
-                -> select('id','title','header','type','cycle','wages','number','address','welfare')
+                -> select('id','title','header','type','cycle','wages','number','address','welfare','status')
                 -> orderBy('id','desc')
                 -> get()
                 -> toArray();
@@ -306,9 +308,28 @@ class ManageController extends Controller
     }
 
     /**
+     * 获取全部有意向（已报名及待面试）的员工
+     * @param Request $request
+     * @return mixed
+     */
+    public function allIntentionWorkers(Request $request)
+    {
+        $error = ReturnJson::parameter(['workid'],$request);
+        if($error) return $error;
+
+        $res = UserWork::with('workers:id,username,header,education,experience')
+            -> where('work_id',$request->workid)
+            -> whereIn('status',[0,4])
+            -> select('id','worker_id','created_at','status')
+            -> get();
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,'获取失败');
+    }
+
+    /**
      * 获取该工作待审核员工
      * @param Request $request
-     *$request->workid      工作ID
+     * $request->workid      工作ID
      * @return array
      */
     public function toBeAudited(Request $request)
@@ -324,6 +345,23 @@ class ManageController extends Controller
     }
 
     /**
+     * 获取某工作已报名员工
+     * @param Request $request
+     * @return array
+     */
+    public function enrolment(Request $request)
+    {
+        $error = ReturnJson::parameter(['workid'],$request);
+        if($error) return $error;
+
+        $work = Works::with('enrolment')
+            -> where('id',$request->workid)
+            -> get();
+        if($work) return ReturnJson::json('ok',0,$work);
+        return ['msg'=>'err','code'=>1,'result'=>'查询失败！'];
+    }
+
+    /**
      * 查看用户信息
      * @param Request $request
      * $request->workerid    工人ID
@@ -334,10 +372,22 @@ class ManageController extends Controller
         $error = ReturnJson::parameter(['workerid'],$request);
         if($error) return $error;
 
-        $filed = ['id','username','idcard','phone','header','bank','bank_number'];
-        $data = Workers::where('id',$request->workerid)
-            -> select($filed)
-            -> get();
+        //$filed = ['id','username','idcard','phone','header','bank','bank_number'];
+        $data = Workers::with(['educational','experiences'])
+            ->where('id',$request->workerid)
+            //-> select($filed)
+            -> get() -> toArray();
+        $n_year = date('Y');
+        $n_month= date('m');
+        $n_day  = date('d');
+        $year   = date('Y',strtotime($data[0]['birthday']));
+        $month  = date('m',strtotime($data[0]['birthday']));
+        $day    = date('d',strtotime($data[0]['birthday']));
+        if($n_month >= $month && $n_day >= $day){
+            $data[0]['birthday'] = $n_year - $year + 1;
+        }else{
+            $data[0]['birthday'] = $n_year - $year;
+        }
         if($data) return ['msg'=>'ok','code'=>0,'result'=>$data];
         return ['msg'=>'err','code'=>1,'result'=>'查询失败！'];
     }
@@ -371,7 +421,13 @@ class ManageController extends Controller
                 \co::sleep(1);
                 $redis = Redis::connection('msg');
                 $msg_id = DB::table('group_msg' . $request->workid) -> select('id') -> orderBy('id','desc') -> first();
-                $redis -> hset('c'.$request->workerid, $request->workid, $msg_id->id);
+                if($msg_id){
+                    $redis -> hset('c'.$request->workerid, $request->workid, $msg_id->id);
+                }
+            });
+            go(function () use($request){
+                \co::sleep(1);
+                Interview::where('work_id',$request->workid) -> where('worker_id',$request->workerid) -> update(['status'=>1]);
             });
         }
         if($res) return ['msg'=>'ok','code'=>0,'result'=>'成功！'];
@@ -391,6 +447,10 @@ class ManageController extends Controller
         $res = UserWork::where('worker_id',$request->workerid)
             -> where('work_id',$request->workid)
             -> update(['status' => 3]);
+        go(function () use($request){
+            \co::sleep(1);
+            Interview::where('work_id',$request->workid) -> where('worker_id',$request->workerid) -> update(['status'=>1]);
+        });
         if($res) return ['msg'=>'ok','code'=>0,'result'=>'成功！'];
         return ['msg'=>'err','code'=>1,'result'=>'失败！'];
     }
@@ -497,14 +557,15 @@ class ManageController extends Controller
         if($error) return $error;
 
         //面试通知
-        $openid = Recruiters::where('id',$request->workerid) -> selete('openid','phone','username') -> first();
+        $openid = Workers::where('id',$request->workerid) -> select('openid','phone','username') -> first();
         $title = Works::where('id',$request->workid) -> select('title') -> first();
+        //发送模板消息
         $result = [
             "touser"        => $openid->openid,
             "template_id"   => 'zkXZRzzIPm-07IAJxYT7QmKkUXnqAPTL00Ulw8PGCeg',
             "page"          => '',
             "data"          => [
-                "keyword1"      => ["value" => $title],
+                "keyword1"      => ["value" => $title->title],
                 "keyword2"      => ["value" => $request->time],
                 "keyword3"      => ["value" => $openid->phone],
                 "keyword4"      => ["value" => $request->address],
@@ -515,7 +576,20 @@ class ManageController extends Controller
         $msg = FromId::sendInterFormid($result,$request->workerid);
 
         $res = UserWork::where('worker_id',$request->workerid) -> where('work_id',$request->workid) -> update(['status' => 0]);
-        if($res) return ReturnJson::json('ok',0,'已通知');
+        if($res){
+            go(function () use ($request){
+                \co::sleep(0.2);
+                Interview::insert([
+                    'worker_id'         => $request->workerid,
+                    'work_id'           => $request->workid,
+                    'time'              => $request->time,
+                    'address'           => $request->address,
+                    'status'            => 0,
+                    'created_at'        => time()
+                ]);
+            });
+            return ReturnJson::json('ok',0,'已通知');
+        }
         return ReturnJson::json('err',1,'服务器忙');
     }
 }

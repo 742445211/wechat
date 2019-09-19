@@ -25,7 +25,9 @@ class WorksController extends Controller
         })->setAttributes(['style'=>'text-align:center;']);
         $grid->column('recruiters.username',__('招聘者'));
         $grid->column(__('已招人数/招聘人数'))->display(function (){
-            return $this -> recruitement . '/' . $this -> number;
+            $recruitment = $this -> recruitment == null ? 0 : $this -> recruitment;
+            $number = $this -> number == null ? 0 : $this->number;
+            return $recruitment . '/' . $number;
         })->setAttributes(['style'=>'text-align:center;']);
         $grid->column('created_at',__('发布时间'));
         $grid->column('validity_time',__('截止日期'));
