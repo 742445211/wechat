@@ -15,8 +15,8 @@ use App\Model\Workers;
 use App\Model\Works;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Redis;
 use BaseFile;
+use Illuminate\Support\Facades\Redis;
 
 class ManageController extends Controller
 {

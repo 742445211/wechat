@@ -2,6 +2,7 @@
 
 use App\Facades\ReturnJson;
 use App\Model\Workers;
+use GatewayClient\Gateway;
 use Illuminate\Http\Request;
 use Intervention\Image\ImageManager;
 
@@ -443,6 +444,14 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     Route::get('tabRead','ZhaoXian\Msg\MsgController@tabRead');
     //获取更多消息
     Route::get('getMorePrivateMsg','ZhaoXian\Msg\MsgController@getMorePrivateMsg');
+    //添加好友（点击咨询）
+    Route::get('addFriend','ZhaoXian\Msg\MsgController@addFriend');
+    //获取好友列表
+    Route::get('getFriend','ZhaoXian\Msg\MsgController@getFriend');
+    //检查是否有新消息
+    Route::get('getMsg','ZhaoXian\Msg\MsgController@getMsg');
+    //标记一条为已读
+    Route::get('tabOneRead','ZhaoXian\Msg\MsgController@tabOneRead');
 
 
 
@@ -469,3 +478,9 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 
     Route::get('getformid','ZhaoXian\FormId\FormIdController@getFormID');
+
+    Route::get('getall',function (){
+        Gateway::$registerAddress = '127.0.0.1:1238';
+        $res = Gateway::getClientSessionsByGroup(66);
+        return $res;
+    });

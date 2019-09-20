@@ -158,8 +158,9 @@ class Sendsms
         $url = "https://api.weixin.qq.com/cv/ocr/idcard?type={$type}&img_url={$img_url}&access_token={$asskey}";
         $res = Sendsms::postCurl($url,'','json');
         $res = json_decode($res);
+        if($res -> errcode != 0) return true;
         if($res->type == 'Front'){
-            if($res->id != $id || $res->name != $username){
+            if($res->id != $id ){ //|| $res->name != $username
                 return true;
             }
             return false;

@@ -62,12 +62,17 @@ class MsgController extends Controller
         });
 
         //给用户绑定群ID
-        go(function () use($client_id,$myGroupId){
+        go(function () use($client_id,$myGroupId,$request){
             \co::sleep(0.25);
+
             foreach($myGroupId as $v){
-                go(function () use($client_id,$v){
+                go(function () use($client_id,$v,$request){
                     \co::sleep(0.25);
-                    Gateway::joinGroup($client_id,$v['work_id']);
+                    if($request->is_rec == 0){
+                        Gateway::joinGroup($client_id,$v['work_id']);
+                    }else{
+                        Gateway::joinGroup($client_id,$v['id']);
+                    }
                 });
             }
         });
@@ -186,8 +191,11 @@ class MsgController extends Controller
         $redis = $this -> redis;
         $id = $request -> is_rec == 0 ? 'c'.$request -> id : 'b'.$request -> id;
         $workid = json_decode($request -> workid);
+        $workid = explode(',',$workid);
+        if($workid == []) return ReturnJson::json('err',1,[]);
         //从redis中取出记录消息的ID
-        $msg_id = @$redis -> hmget($id, $workid);
+        $msg_id = $redis -> hmget($id, $workid);
+        return $msg_id;
         $res = [];
         //循环查询未读条数
         foreach ($msg_id as $key => $item) {
@@ -311,6 +319,7 @@ class MsgController extends Controller
 
         //把消息及相关数据存入mysql
         go(function () use($request,$chan,$massage){
+            \co::sleep(1);
             //拼接要写入数据库的数据
             $data = [
                 'member_id'         => $request -> id,
@@ -328,6 +337,7 @@ class MsgController extends Controller
 
         //发送消息
         go(function () use($request,$chan,$massage){
+            \co::sleep(1);
             $data = [
                 'id'                => $chan -> pop(),
                 'username'          => $request -> username,
@@ -562,6 +572,65 @@ class MsgController extends Controller
     }
 
     /**
+     * 用户绑定私聊
+     * b_id
+     * c_id
+     * is_rec
+     * client_id
+     * @param Request $request
+     * @return mixed
+     */
+    public function bindPrivate(Request $request)
+    {
+        $error = ReturnJson::parameter(['b_id','c_id','is_rec','client_id'],$request);
+        if($error) return $error;
+
+        //设置GatewayWorker服务的Register服务ip和端口
+        Gateway::$registerAddress = '127.0.0.1:1238';
+
+        $client_id = $request->client_id;
+        $uid = $request->is_rec == 0 ? 'C' . $request->c_id : 'B' . $request->b_id;
+
+        Gateway::bindUid($client_id,$uid);
+    }
+
+    /**
+     * 添加好友（点击咨询）
+     * @param Request $request
+     * @return mixed
+     */
+    public function addFriend(Request $request)
+    {
+        $error = ReturnJson::parameter(['b_id','c_id','is_rec'],$request);
+        if($error) return $error;
+
+        $uid = $request->is_rec == 0 ? 'C' . $request->c_id : 'B' . $request->b_id;
+        $fid = $request->is_rec == 0 ? $request->b_id : $request->c_id;
+        $redis = $this->redis;
+        $time = time();
+        $res = $redis -> zadd('P' . $uid,$time,$fid);
+        if($res) return ReturnJson::json('ok',0,'添加成功');
+        return ReturnJson::json('err',1,'添加失败');
+    }
+
+    /**
+     * 获取好友列表
+     * @param Request $request
+     * @return mixed
+     */
+    public function getFriend(Request $request)
+    {
+        $error = ReturnJson::parameter(['b_id','c_id','is_rec'],$request);
+        if($error) return $error;
+
+        $uid = $request->is_rec == 0 ? 'C' . $request->c_id : 'B' . $request->b_id;
+        $redis = $this->redis;
+        $res = $redis -> zRange('P' . $uid,0,-1);
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,'获取失败');
+    }
+
+    /**
      * 私聊发送消息
      * @param Request $request
      * @return mixed
@@ -575,13 +644,13 @@ class MsgController extends Controller
         Gateway::$registerAddress = '127.0.0.1:1238';
 
         //使用通道接受协程中的数据
-        $chan = new \co\Channel(1);
+        //$chan = new \co\Channel(1);
 
         //链接redis
         $redis = $this -> redis;
 
         //把消息及相关数据存入mysql
-        go(function () use($request,$chan){
+        //go(function () use($request,$chan){
             //拼接要写入数据库的数据
             $data = [
                 'massage'           => $request -> massage,             //消息内容
@@ -594,15 +663,14 @@ class MsgController extends Controller
                 'is_rec'            => $request -> is_rec
             ];
             $res = PrivateMsg::insertGetId($data);
-            if($res) {
-                $chan -> push($res);
-            }
-        });
-
+            //if($res) {
+            //    $chan -> push($res);
+            //}
+        //});
         //发送消息
-        go(function () use($request,$chan,$redis){
+        //go(function () use($request,$chan,$redis,$id){
             $data = [
-                'id'                => $chan -> pop(),
+                'id'                => $res,
                 'username'          => $request -> username,
                 'header'            => $request -> header,
                 'created_at'        => $request -> created_at,
@@ -618,8 +686,10 @@ class MsgController extends Controller
 //            }elseif ($request->is_rec == 1){
 //                $redis -> incr('c' . $request->c_id . 'b' . $request->b_id);
 //            }
-            Gateway::sendToUid($request -> receive_id, json_encode($data, JSON_UNESCAPED_UNICODE));
-        });
+            $get_id = $request->is_rec == 0 ? 'b' . $request->b_id : 'c' . $request->c_id;
+            Gateway::sendToUid($get_id, json_encode($data, JSON_UNESCAPED_UNICODE));
+        //});
+        return $res;
     }
 
     /**
@@ -669,6 +739,7 @@ class MsgController extends Controller
         }elseif ($request->is_rec == 1){
             $id = $redis -> get('p_' . $b_id . $c_id);
         }
+
         //判断是否有消息记录
         if($id){
             $msg = PrivateMsg::where('b_id',$request->b_id)
@@ -687,19 +758,49 @@ class MsgController extends Controller
             $msg = PrivateMsg::where('b_id',$request->b_id)
                 -> where('c_id',$request->c_id)
                 -> orderBy('id','desc')
-                -> limit(30)
+                -> limit(20)
                 -> get()
                 -> toArray();
             $msg = array_reverse($msg);
-            //获取消息是否已读
-            $read = $redis -> pipeline(function ($pipe) use($msg){
-                foreach ($msg as $value){
-                    $pipe -> getbit('privateRead',$value->id);
-                }
-            });
+            if($msg){
+                //获取消息是否已读
+                $read = $redis -> pipeline(function ($pipe) use($msg){
+                    foreach ($msg as $value){
+                        $pipe -> getbit('privateRead',$value['id']);
+                    }
+                });
+            }
             if($msg) return ReturnJson::json('ok',0,[$msg,$read]);
-            return ReturnJson::json('err','1','服务器忙');
+            return ReturnJson::json('err',1,'服务器忙');
         }
+    }
+
+    /**
+     * 检查是否有新消息
+     * @param Request $request
+     * @return mixed
+     */
+    public function getMsg(Request $request)
+    {
+        $error = ReturnJson::parameter(['b_id','c_id','is_rec'],$request);
+        if($error) return $error;
+
+        $redis = $this->redis;
+        $last = PrivateMsg::where('b_id',$request->b_id) -> where('c_id',$request->c_id) -> select('id') -> orderBy('id','desc') -> first();
+        if($request -> is_rec == 0){
+            $get = $redis -> get('p_' . 'c' . $request->c_id . 'b' . $request->b_id);
+        }else{
+            $get = $redis -> get('p_' . 'b' . $request->b_id . 'c' . $request->c_id);
+        }
+
+        if($last->id == $get){
+            $res = PrivateMsg::where('b_id',$request->b_id) -> where('c_id',$request->c_id) ->orderBy('id','desc') -> take(20) -> get() -> toArray();
+            $res = array_reverse($res);
+            if($res) return ReturnJson::json('ok',0,$res);
+            if($res == []) ReturnJson::json('err',15,[]);
+            return ReturnJson::json('err',1,'服务器忙');
+        }
+        return ReturnJson::json('err',1,[]);
     }
 
     /**
@@ -819,6 +920,22 @@ class MsgController extends Controller
     }
 
     /**
+     * 标记一条为已读
+     * @param Request $request
+     * @return mixed
+     */
+    public function tabOneRead(Request $request)
+    {
+        $error = ReturnJson::parameter(['msg_id'],$request);
+        if($error) return $error;
+
+        $redis = $this->redis;
+        $res = $redis -> setbit('privateRead',$request->msg_id,1);
+        if($res == 0 || $res == 1) return ReturnJson::json('ok',0,'ok');
+        return ReturnJson::json('err',1,'哦豁');
+    }
+
+    /**
      * 获取更多消息
      * b_id         b端用户id
      * c_id         c端用户id
@@ -838,6 +955,5 @@ class MsgController extends Controller
             -> get();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'服务器忙');
-
     }
 }

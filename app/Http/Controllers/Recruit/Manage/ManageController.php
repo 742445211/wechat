@@ -10,7 +10,6 @@ use App\Facades\SendSms;
 use App\Model\Describe;
 use App\Model\Interview;
 use App\Model\WorksGeo;
-use function foo\func;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schema;
@@ -90,7 +89,7 @@ class ManageController extends Controller
             $error = ReturnJson::parameter(['position','back'],$request);
             if($error) return $error;
 
-            $error = SendSms::wxOcrIdCard($request->position, $request->idcard);
+            $error = SendSms::wxOcrIdCard($request->position, $request->idcard,$request->username);
             if($error) return ReturnJson::json('err',9,'身份证照与输入信息不匹配');
             $info = [
                 //通过basefile把base64文件流转为图片，返回图片路径
