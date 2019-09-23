@@ -225,6 +225,12 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::post('editDynamicImage','ZhaoXian\Dynamic\DynamicController@editImage');
         //上传动态图片
         Route::post('uploadDynamicImage','ZhaoXian\Dynamic\DynamicController@uploadDynamicImage');
+
+
+        //记录b端用户查看c端用户
+        Route::post('recordViewWorker','ZhaoXian\RecordView\RecordViewController@recordViewWorker');
+        //获取产看过我的工作的c端用户
+        Route::get('getViewWork','ZhaoXian\RecordView\RecordViewController@getViewWork');
     });
 
 /**
@@ -328,6 +334,12 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         //获取招聘者发布过的工作
         Route::get('getWorkByRecruiter','Inter\Manage\ManageController@getWorkByRecruiter');
 
+
+
+        //记录C端用户查看的工作
+        Route::post('recordViewWork','ZhaoXian\RecordView\RecordViewController@recordViewWork');
+        //获取查看过当前C端用户的B端用户
+        Route::get('getViewWorker','ZhaoXian\RecordView\RecordViewController@getViewWorker');
 
         /**
          * C端部分聊天接口

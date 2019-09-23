@@ -61,11 +61,11 @@ class WorksController extends Controller
             ]);
             $filter->equal('cate');
         });
-        Admin::style(
-            'a {color:#1f1f1f;text-decoration:underline}
-            .pagination>.active>span {background-color: #FC7501;border-color: #FC7501;}
-            .pagination>.active>span:hover {background-color: #FC7501;border-color: #FC7501;}'
-        );
+//        Admin::style(
+//            'a {color:#1f1f1f;text-decoration:underline}
+//            .pagination>.active>span {background-color: #FC7501;border-color: #FC7501;}
+//            .pagination>.active>span:hover {background-color: #FC7501;border-color: #FC7501;}'
+//        );
 
         return $grid;
     }
@@ -125,7 +125,7 @@ class WorksController extends Controller
                         $html = "<div style='display: flex'>";
                         foreach ($workers as $value){
                             $html .= "<div style='width: 72px;height: 90px;flex-wrap: wrap;text-align: center'>";
-                            $html .=    "<a href='/admin/worker/detail?id=$value->id' style='color: #FF6900'>";
+                            $html .=    "<a href='/admin/workers/show?id=$value->id' style='color: #FF6900'>";
                             $html .=        "<img src='$value->header' style='width: 60px;height: 60px;border-radius: 50%;'>";
                             $html .=        "<span>$value->username</span>";
                             $html .=    "</a>";

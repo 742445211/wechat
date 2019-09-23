@@ -609,7 +609,7 @@ class MsgController extends Controller
         $redis = $this->redis;
         $time = time();
         $res = $redis -> zadd('P' . $uid,$time,$fid);
-        if($res) return ReturnJson::json('ok',0,'添加成功');
+        if($res == 1 || $res == 0) return ReturnJson::json('ok',0,'添加成功');
         return ReturnJson::json('err',1,'添加失败');
     }
 
@@ -620,12 +620,12 @@ class MsgController extends Controller
      */
     public function getFriend(Request $request)
     {
-        $error = ReturnJson::parameter(['b_id','c_id','is_rec'],$request);
+        $error = ReturnJson::parameter(['id','is_rec'],$request);
         if($error) return $error;
 
-        $uid = $request->is_rec == 0 ? 'C' . $request->c_id : 'B' . $request->b_id;
+        $uid = $request->is_rec == 0 ? 'C' . $request->id : 'B' . $request->id;
         $redis = $this->redis;
-        $res = $redis -> zRange('P' . $uid,0,-1);
+        $res = $redis -> zRevRange('P' . $uid,0,-1);
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败');
     }
@@ -680,7 +680,7 @@ class MsgController extends Controller
                 'c_id'              => $request -> c_id,
                 'is_rec'            => $request -> is_rec
             ];
-            $redis -> setbit('privateRead',$data['id'],0);
+
 //            if($request->is_rec == 0){
 //                $redis -> incr('b' . $request->b_id . 'c' . $request->c_id);
 //            }elseif ($request->is_rec == 1){
@@ -689,6 +689,10 @@ class MsgController extends Controller
             $get_id = $request->is_rec == 0 ? 'b' . $request->b_id : 'c' . $request->c_id;
             Gateway::sendToUid($get_id, json_encode($data, JSON_UNESCAPED_UNICODE));
         //});
+        go(function ()use($redis,$res){
+            \co::sleep(1);
+            $redis -> setbit('privateRead',$res,0);
+        });
         return $res;
     }
 
@@ -866,25 +870,31 @@ class MsgController extends Controller
      */
     public function getLastPrivateMsg(Request $request)
     {
-        $error = ReturnJson::parameter(['b_id','c_id','is_rec'],$request);
+        $error = ReturnJson::parameter(['id','is_rec'],$request);
         if($error) return $error;
 
+        //获取当前用户的好友列表
+        $uid = $request->is_rec == 0 ? 'C' . $request->id : 'B' . $request->id;
+        $redis = $this->redis;
+        $friend = $redis -> zRevRange('P' . $uid,0,-1);
+
+        //获取每个好友对应聊天的最后一条消息
         $res = [];
         if($request->is_rec == 0){
-            $b_id = json_decode($request->b_id);
+            $b_id = $friend;
             foreach ($b_id as $value){
                 $res[$value] = PrivateMsg::where('b_id',$value)
-                    -> where('c_id',$request->c_id)
-                    -> select('id','username','massage','created_at','type','is_rec')
+                    -> where('c_id',$request->id)
+                    -> select('id','massage','username','header','type','is_rec','created_at')
                     -> orderBy('id','desc')
                     -> first();
             }
         }elseif($request->is_rec == 1){
-            $c_id = json_decode($request->c_id);
+            $c_id = $friend;
             foreach ($c_id as $value){
-                $res[$value] = PrivateMsg::where('b_id',$request->b_id)
+                $res[$value] = PrivateMsg::where('b_id',$request->id)
                     -> where('c_id',$value)
-                    -> select('id','username','massage','created_at','type','is_rec')
+                    -> select('id','massage','username','header','type','is_rec','created_at')
                     -> orderBy('id','desc')
                     -> first();
             }

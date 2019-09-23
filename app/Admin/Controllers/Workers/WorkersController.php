@@ -52,7 +52,7 @@ class WorkersController extends Controller
         $grid->column('created_at',__('注册时间'))->setAttributes(['style'=>'text-align:center;']);
         $grid->disableActions();
         $grid->disableCreateButton();
-        Admin::style('a {color:#1f1f1f;text-decoration:underline}');
+//        Admin::style('a {color:#1f1f1f;text-decoration:underline}');
 
         return $grid;
     }

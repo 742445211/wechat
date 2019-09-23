@@ -1,0 +1,17 @@
+//记录c/b端id为$id的用户在群$work_id中浏览的最后一条消息id($msg_id)
+key => c/b . $id , filed => $work_id , value => $msg_id
+
+//记录群$work_id中用户$worker_id的分组id($grouping_id)
+key => group . $work_id , filed => $worker_id , value => $grouping_id
+
+//记录群$work_id中的所有分组，$grouping_name对应id的组名，$grouping_id是自增的分组id
+key => $work_id , value => $grouping_name(分组名) , score => $grouping_id(自增)
+
+//记录用户$id的好友$fid按时间戳$time排序
+key => PC/PB . $id , value => $fid , score => $time
+
+//记录用户$b_id/$c_id与用户$c_id/$b_id的聊天中的最后一条消息id($msg_id)
+key => p_b.$b_id.c.$c_id/p_c.$c_idb.$b_id , value => $msg_id
+
+//记录消息已读未读状态，offset为消息id，value 0=>未读 1=>已读
+key => privateRead , offset => $msg_id , value => 0/1
