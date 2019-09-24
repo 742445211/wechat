@@ -57,7 +57,7 @@ class ManageController extends Controller
             //存在返回token
             $token = Hash::make($json['openid']);
             Redis::set('rec_' . $isFirst->id,$token);//token存入redis，key为rec_加上用户ID
-            return ReturnJson::json('ok',0,['token'=>$token,'id'=>$isFirst->id]);
+            return ReturnJson::json('ok',0,['token'=>$token,'id'=>$isFirst->id,'username'=>$isFirst->username]);
         }else{
             return ReturnJson::json('ok',1,$json['openid']);
         }
@@ -90,7 +90,7 @@ class ManageController extends Controller
             if($error) return $error;
 
             $error = SendSms::wxOcrIdCard($request->position, $request->idcard,$request->username);
-            if($error) return ReturnJson::json('err',9,'身份证照与输入信息不匹配');
+            if($error) return $error;
             $info = [
                 //通过basefile把base64文件流转为图片，返回图片路径
                 //身份正正面照
@@ -104,7 +104,7 @@ class ManageController extends Controller
             if($error) return $error;
 
             $error = SendSms::wxBusinessLicense($request->license,$request->company);
-            if($error) return ReturnJson::json('err',13,'营业执照与公司名不匹配');
+            if($error) return $error;
             $info = [
                 'company'     => $request -> company,                //公司名称
                 //营业执照
@@ -120,7 +120,7 @@ class ManageController extends Controller
             $redis = Redis::connection('census');
             $redis -> incr('business');
             $redis -> incr('uncertified');
-            if(Redis::setex('rec_' . $res,'216000',$token)) return ReturnJson::json('ok',0,['token'=>$token,'id'=>$res]);
+            if(Redis::setex('rec_' . $res,'216000',$token)) return ReturnJson::json('ok',0,['token'=>$token,'id'=>$res,'username'=>$request->username]);
         }else{
             return ReturnJson::json('err',1,'添加失败！');
         }
@@ -179,6 +179,10 @@ class ManageController extends Controller
     {
         $error = ReturnJson::parameter(['title','header','location','cycle','wages','describe','validity_time','experience','longitude','latitude','cate'],$request);
         if($error) return $error;
+
+        $is_ok = Recruiters::where('id',$request->id) -> select('status') -> first();
+        if($is_ok->status == 0) return ReturnJson::json('err',20,'用户信息审核中，请耐心等待');
+        if($is_ok->status == 2) return ReturnJson::json('err',21,'审核未通过');
 
         $token = Redis::get('rec_' . $request -> id); //从redis中取到token
         $deduct = isset($request->deduct) ? $request->deduct : 0;
@@ -260,6 +264,7 @@ class ManageController extends Controller
                     $redis -> incr('recruitment');
                 });
                 go(function () use($request,$res){
+                    \co::sleep(1);
                     Describe::insert(['content'=> $request -> describe,'work_id'=>$res]);
                 });
             }
@@ -454,25 +459,25 @@ class ManageController extends Controller
         return ['msg'=>'err','code'=>1,'result'=>'失败！'];
     }
 
-    /**
-     * 下架工作，标示工作开始并停止找人
-     * @param Request $request
-     * @return mixed
-     */
-    public function atWork(Request $request)
-    {
-        $error = ReturnJson::parameter(['id','workid'],$request);
-        if($error) return $error;
-
-        $res = Works::where('recruiter_id',$request -> id) -> where('id',$request -> workid) -> update(['status' => 1]);
-        if($res){
-            go(function (){
-                $redis = Redis::connection('census');
-            });
-        }
-        if($res) return ReturnJson::json('ok',0,'下架成功');
-        return ReturnJson::json('err',1,'操作失败');
-    }
+//    /**
+//     * 下架工作，标示工作开始并停止找人
+//     * @param Request $request
+//     * @return mixed
+//     */
+//    public function atWork(Request $request)
+//    {
+//        $error = ReturnJson::parameter(['id','workid'],$request);
+//        if($error) return $error;
+//
+//        $res = Works::where('recruiter_id',$request -> id) -> where('id',$request -> workid) -> update(['status' => 1]);
+//        if($res){
+//            go(function (){
+//                $redis = Redis::connection('census');
+//            });
+//        }
+//        if($res) return ReturnJson::json('ok',0,'下架成功');
+//        return ReturnJson::json('err',1,'操作失败');
+//    }
 
     /**
      * 接受b端用户注册时上传的图片
@@ -590,5 +595,26 @@ class ManageController extends Controller
             return ReturnJson::json('ok',0,'已通知');
         }
         return ReturnJson::json('err',1,'服务器忙');
+    }
+
+    /**
+     * B端获取新求职者
+     * @param Request $request
+     * @return mixed
+     */
+    public function getNewWorkers(Request $request)
+    {
+        $error = ReturnJson::parameter(['id','token'],$request);
+        if($error) return $error;
+
+        $token = Redis::get('rec_' . $request -> id);
+        if($token != $request->token) return ReturnJson::json('err',1,'你已在其他地方登陆');
+        $res = Workers::with('experiences:intention_work,intention_place')
+            -> where('status',1)
+            -> select('id','header','username','experience','education','created_at')
+            -> orderBy('id','desc')
+            -> get();
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,'获取失败');
     }
 }

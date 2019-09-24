@@ -5,6 +5,7 @@ namespace App\Sms;
 
 
 
+use App\Facades\ReturnJson;
 use Illuminate\Support\Facades\Redis;
 
 /**
@@ -158,14 +159,14 @@ class Sendsms
         $url = "https://api.weixin.qq.com/cv/ocr/idcard?type={$type}&img_url={$img_url}&access_token={$asskey}";
         $res = Sendsms::postCurl($url,'','json');
         $res = json_decode($res);
-        if($res -> errcode != 0) return true;
+        if($res -> errcode != 0) return ReturnJson::json('err',15,'请重新上传身份证');
         if($res->type == 'Front'){
             if($res->id != $id ){ //|| $res->name != $username
-                return true;
+                return ReturnJson::json('err',9,'营业执照与公司名不匹配');
             }
             return false;
         }
-        return true;
+        return ReturnJson::json('err',16,'身份证位置错误');
     }
 
     /**
@@ -191,9 +192,9 @@ class Sendsms
             if($res->enterprise_name == $company){
                 return false;
             }
-            return true;
+            return ReturnJson::json('err',13,'营业执照与公司名不匹配');
         }
-        return true;
+        return ReturnJson::json('err',14,'请重新上传营业执照');
     }
 
     /**

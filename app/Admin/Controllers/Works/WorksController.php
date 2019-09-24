@@ -85,7 +85,7 @@ class WorksController extends Controller
                 });
                 $show->age('年龄要求');
                 $show->wages('薪资')->as(function () use($cycle){
-                    return $this->wages / 100 . '元/' . $cycle[$this->cycle];
+                    return $this->wages . '元/' . $cycle[$this->cycle];
                 });
                 $show->address('工作地址');
                 $show->welfare('工作福利')->unescape()->as(function ($welfare){
@@ -103,7 +103,9 @@ class WorksController extends Controller
                     }
                     return $path;
                 })->image();
-                $show->describe('职位描述');
+                $show->describe('职位描述')->unescape()->as(function ($query){
+                    return $query->content;
+                });
 
                 $show->recruiters('职位发布者')->unescape()->as(function ($recruiter){
                     $company = $recruiter->is_company == 0 ? '个人' : '公司';

@@ -135,7 +135,7 @@ class MsgController extends Controller
         $redis = $this -> redis;
         //记录用户在某群浏览的最后一条消息的ID，hash表名为用户ID,群ID为filed，值为msg_id
         $res = $redis -> hset($id, $work_id, $msg_id);
-        if($res) return ReturnJson::json('ok',0,'记录成功！');
+        if($res == 0 || $res == 1) return ReturnJson::json('ok',0,'记录成功！');
         return ReturnJson::json('err',1,'记录失败！');
     }
 
@@ -190,12 +190,11 @@ class MsgController extends Controller
 
         $redis = $this -> redis;
         $id = $request -> is_rec == 0 ? 'c'.$request -> id : 'b'.$request -> id;
-        $workid = json_decode($request -> workid);
-        $workid = explode(',',$workid);
+        //$workid = json_decode($request -> workid);
+        $workid = explode(',',$request->workid);
         if($workid == []) return ReturnJson::json('err',1,[]);
         //从redis中取出记录消息的ID
         $msg_id = $redis -> hmget($id, $workid);
-        return $msg_id;
         $res = [];
         //循环查询未读条数
         foreach ($msg_id as $key => $item) {
@@ -233,6 +232,9 @@ class MsgController extends Controller
                 -> limit(1)
                 -> first();
             //$res[$workid[$i]] -> created_at = date('Y-m-d',$res[$workid[$i]] -> created_at);
+//            if(count($res[$workid[$i]]) == 0){
+//                $res[$workid[$i]] = collect(['content' => 0]);
+//            }
         }
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'稍后再试！');

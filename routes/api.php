@@ -132,6 +132,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::get('getRecruitWork','ZhaoXian\Works\WorkController@getRecruitWork');
         //获取全部有意向（已报名及待面试）的员工
         Route::get('allIntentionWorkers','Recruit\Manage\ManageController@allIntentionWorkers');
+        //B端获取新求职者
+        Route::get('getNewWorkers','Recruit\Manage\ManageController@getNewWorkers');
 
 
         //招聘端查看岗位详情,获取在职员工
@@ -231,6 +233,12 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::post('recordViewWorker','ZhaoXian\RecordView\RecordViewController@recordViewWorker');
         //获取产看过我的工作的c端用户
         Route::get('getViewWork','ZhaoXian\RecordView\RecordViewController@getViewWork');
+
+        /**
+         * B端部分聊天接口
+         */
+        //获取消息记录，聊天记录下拉
+        Route::get('getGroupMsg','ZhaoXian\Msg\MsgController@getGroupMsg');
     });
 
 /**
