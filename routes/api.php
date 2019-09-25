@@ -425,6 +425,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     Route::get('unGroup','ZhaoXian\Msg\MsgController@unGroup');
     //踢人
     Route::get('leaveGroup','ZhaoXian\Msg\MsgController@leaveGroup');
+    //获取我的所有群
+    Route::get('getMyGroup','ZhaoXian\Msg\MsgController@getMyGroup');
 
 
 

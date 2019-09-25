@@ -369,7 +369,7 @@ class ManageController extends Controller
         //按微信小程序(https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/qr-code/wxacode.getUnlimited.html)接口配置参数
         $data = [
             'scene'      => $workId,
-            'page'       => 'pages/worklist/worklist',
+            'page'       => 'pages/receiveQRcode/receiveQRcode',
             'auto_color' => false,
             'line_color' => ['r'=>224,'g'=>100,'b'=>0]
         ];

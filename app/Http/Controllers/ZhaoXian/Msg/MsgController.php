@@ -8,8 +8,10 @@ use App\Facades\BaseFile;
 use App\Facades\ReturnJson;
 use App\Http\Controllers\Controller;
 use App\Model\PrivateMsg;
+use App\Model\Recruiters;
 use App\Model\Test;
 use App\Model\UserWork;
+use App\Model\Workers;
 use App\Model\Works;
 use GatewayClient\Gateway;
 use Illuminate\Http\Request;
@@ -81,6 +83,34 @@ class MsgController extends Controller
             if($work) return ReturnJson::json('ok',0,$work);
         }
 
+        return ReturnJson::json('err',1,'群ID获取失败！');
+    }
+
+    /**
+     * 获取我的所有工作群
+     * @param Request $request
+     * @return mixed
+     */
+    public function getMyGroup(Request $request)
+    {
+        $error = ReturnJson::parameter(['id','is_rec'],$request);
+        if($error) return $error;
+
+        $uid = $request -> id;
+        $myGroupId = null;
+        //通过uid获取当前用户的所有群ID
+        if($request -> is_rec == 0){
+            //当用户时员工时
+            $myGroupId = UserWork::where('worker_id',$uid) -> where('status','=',1) -> select('work_id') -> get() -> toArray();
+        }elseif($request -> is_rec == 1){
+            //当用户时管理员时
+            $myGroupId = Works::where('recruiter_id',$uid) -> where('status','!=',2) -> select('id') -> get() -> toArray();
+        }
+
+        if($myGroupId){
+            $work = Works::whereIn('id',$myGroupId) -> select('id','header','title') -> get();
+            if($work) return ReturnJson::json('ok',0,$work);
+        }
         return ReturnJson::json('err',1,'群ID获取失败！');
     }
 
@@ -606,11 +636,20 @@ class MsgController extends Controller
         $error = ReturnJson::parameter(['b_id','c_id','is_rec'],$request);
         if($error) return $error;
 
-        $uid = $request->is_rec == 0 ? 'C' . $request->c_id : 'B' . $request->b_id;
-        $fid = $request->is_rec == 0 ? $request->b_id : $request->c_id;
         $redis = $this->redis;
         $time = time();
-        $res = $redis -> zadd('P' . $uid,$time,$fid);
+        if($request->is_rec == 0){
+            $uid = $request->is_rec == 0 ? 'C' . $request->c_id : 'B' . $request->b_id;
+            $fid = $request->is_rec == 0 ? $request->b_id : $request->c_id;
+            $redis -> zadd('PC' . $fid,$time,$request->b_id);
+            $res = $redis -> zadd('P' . $uid,$time,$fid);
+        }else{
+            $uid = $request->is_rec == 0 ? 'B' . $request->b_id : 'C' . $request->c_id;
+            $fid = $request->is_rec == 0 ? $request->c_id : $request->b_id;
+            $redis -> zadd('PB' . $fid,$time,$request->c_id);
+            $res = $redis -> zadd('P' . $uid,$time,$fid);
+        }
+
         if($res == 1 || $res == 0) return ReturnJson::json('ok',0,'添加成功');
         return ReturnJson::json('err',1,'添加失败');
     }
@@ -627,9 +666,20 @@ class MsgController extends Controller
 
         $uid = $request->is_rec == 0 ? 'C' . $request->id : 'B' . $request->id;
         $redis = $this->redis;
-        $res = $redis -> zRevRange('P' . $uid,0,-1);
+        $data = $redis -> zRevRange('P' . $uid,0,-1);
+        $res = [];
+        if($request->is_rec == 0){
+            foreach ($data as $key => $val){
+                $res[$val] = Recruiters::where('id',$val) -> select('id','username','header') -> first();
+            }
+        }else{
+            foreach ($data as $key => $val){
+                $res[$val] = Workers::where('id',$val) -> select('id','username','header') -> first();
+            }
+        }
+
         if($res) return ReturnJson::json('ok',0,$res);
-        return ReturnJson::json('err',1,'获取失败');
+        return ReturnJson::json('err',1,[]);
     }
 
     /**
@@ -799,6 +849,7 @@ class MsgController extends Controller
             $get = $redis -> get('p_' . 'b' . $request->b_id . 'c' . $request->c_id);
         }
 
+        if(count($last) == 0) return ReturnJson::json('err',1,[]);
         if($last->id == $get){
             $res = PrivateMsg::where('b_id',$request->b_id) -> where('c_id',$request->c_id) ->orderBy('id','desc') -> take(20) -> get() -> toArray();
             $res = array_reverse($res);
@@ -859,7 +910,7 @@ class MsgController extends Controller
             }
         }
         if(count($number) != 0) return ReturnJson::json('ok',0,$number);
-        return ReturnJson::json('err',1,'无记录');
+        return ReturnJson::json('err',1,[]);
     }
 
     /**
@@ -887,7 +938,7 @@ class MsgController extends Controller
             foreach ($b_id as $value){
                 $res[$value] = PrivateMsg::where('b_id',$value)
                     -> where('c_id',$request->id)
-                    -> select('id','massage','username','header','type','is_rec','created_at')
+                    //-> select('id','massage','username','header','type','is_rec','created_at')
                     -> orderBy('id','desc')
                     -> first();
             }
@@ -896,13 +947,13 @@ class MsgController extends Controller
             foreach ($c_id as $value){
                 $res[$value] = PrivateMsg::where('b_id',$request->id)
                     -> where('c_id',$value)
-                    -> select('id','massage','username','header','type','is_rec','created_at')
+                    //-> select('id','massage','username','header','type','is_rec','created_at')
                     -> orderBy('id','desc')
                     -> first();
             }
         }
         if(count($res)) return ReturnJson::json('ok',0,$res);
-        return ReturnJson::json('err',1,'无记录');
+        return ReturnJson::json('err',1,[]);
     }
 
     /**
