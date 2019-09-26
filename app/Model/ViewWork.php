@@ -14,11 +14,11 @@ class ViewWork extends Model
 
     public function work()
     {
-        return $this->hasOne('App\Model\Works','work_id','id');
+        return $this->hasOne('App\Model\Works','id','work_id');
     }
 
     public function worker()
     {
-        return $this->hasOne('App\Model\Workers','worker_id','id');
+        return $this->hasOne('App\Model\Workers','id','worker_id');
     }
 }

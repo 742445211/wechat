@@ -7,6 +7,8 @@ namespace App\Http\Controllers\ZhaoXian\Collection;
 use App\Facades\ReturnJson;
 use App\Http\Controllers\Controller;
 use App\Model\Collection;
+use App\Model\Recruiters;
+use App\Model\Works;
 use Illuminate\Http\Request;
 
 class CollectionController extends Controller
@@ -81,10 +83,18 @@ class CollectionController extends Controller
      */
     public function getCollectionWorker(Request $request)
     {
-        $error = ReturnJson::parameter(['workid'],$request);
+        $error = ReturnJson::parameter(['id'],$request);
         if($error) return $error;
 
-        $res = Collection::with('workers') -> where('work_id',$request->workid) -> get();
+        $workid = Works::where('recruiter_id',$request->id) -> select('id') -> get() -> toArray();
+        $work_id = [];
+        foreach ($workid as $value){
+            array_push($work_id,$value['id']);
+        }
+        $res = Collection::with(['works:id,title','workers'=>function($query){
+            $query->with(['experiences:intention_work,intention_place,worker_id'])
+                ->select('id','header','username','experience','education')->get();
+        }]) -> whereIn('work_id',$work_id) -> get();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败！');
     }

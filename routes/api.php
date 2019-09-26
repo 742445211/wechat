@@ -348,6 +348,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::post('recordViewWork','ZhaoXian\RecordView\RecordViewController@recordViewWork');
         //获取查看过当前C端用户的B端用户
         Route::get('getViewWorker','ZhaoXian\RecordView\RecordViewController@getViewWorker');
+        //获取招聘者详情
+        Route::get('getRecruiterDetail','Inter\Manage\ManageController@getRecruiterDetail');
 
         /**
          * C端部分聊天接口

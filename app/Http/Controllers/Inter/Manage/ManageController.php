@@ -10,6 +10,7 @@ use App\Facades\SendSms;
 use App\Http\Controllers\Controller;
 use App\Model\Collection;
 use App\Model\Feedback;
+use App\Model\Recruiters;
 use App\Model\UserWork;
 use App\Model\Workers;
 use App\Model\Works;
@@ -389,9 +390,24 @@ class ManageController extends Controller
         if($error) return $error;
 
         $select = ['id','title','header'];
-        $res = Works::where('recruiter_id',$request->recruiter_id) -> select($select) -> get();
+        $res = Works::where('recruiter_id',$request->recruiter_id) -> where('status',0) -> select($select) -> get();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败！');
+    }
+
+    /**
+     * 获取招聘者详情
+     * @param Request $request
+     * @return mixed
+     */
+    public function getRecruiterDetail(Request $request)
+    {
+        $error = ReturnJson::parameter(['recruiter_id'],$request);
+        if($error) return $error;
+
+        $res = Recruiters::where('id',$request->recruiter_id) -> select('id','username','header','sex') -> first();
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,'获取失败');
     }
 
     /**

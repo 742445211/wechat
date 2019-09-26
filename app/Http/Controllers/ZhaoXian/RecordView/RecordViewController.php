@@ -47,11 +47,16 @@ class RecordViewController extends Controller
         $work_id = Works::where('recruiter_id',$request->id)
             -> where('status',0)
             -> select('id')
-            -> get();
+            -> get()
+            -> toArray();
+        $workid = [];
+        foreach ($work_id as $value){
+            array_push($workid,$value['id']);
+        }
         $res = ViewWork::with(['work:id,title','worker'=>function($query){
             $query->with(['experiences:intention_work,intention_place,worker_id'])
                 ->select('id','header','username','experience','education')->get();
-        }]) -> whereIn('work_id',$work_id)
+        }]) -> whereIn('work_id',$workid)
             -> select('work_id','worker_id','id')
             -> orderBy('id','desc')
             -> take(12)
