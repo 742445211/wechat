@@ -470,15 +470,13 @@ class MsgController extends Controller
         $error = ReturnJson::parameter(['workid','workerid','grouping_id'],$request);
         if($error) return $error;
 
-        $redis = $this -> redis;
-        //设置群分组信息，表名为群ID，字段为员工ID，值为分组
-        $group = $redis -> hset('group'.$request -> workid, $request -> workerid, $request -> grouping_id);
+        $group = UserWork::where('work_id',$request->workid) -> where('worker_id',$request->workerid) -> update(['group_id'=>$request->grouping_id]);
         if($group) return ReturnJson::json('ok',0,'已加入');
         return ReturnJson::json('err',1,'加入失败');
     }
 
     /**
-     * 获取分组及人员
+     * 获取全部人员
      * @param Request $request
      * $request -> workid           群ID
      * @return mixed
@@ -488,10 +486,30 @@ class MsgController extends Controller
         $error = ReturnJson::parameter(['workid'],$request);
         if($error) return $error;
 
-        $redis = $this -> redis;
-        $data = $redis -> hgetall('group'.$request -> workid);
+        $data = UserWork::with('workers:id,username,header')
+            -> where('work_id',$request->workid)
+            -> where('status',1)
+            -> get();
         if($data) return ReturnJson::json('ok',0,$data);
-        return ReturnJson::json('err',1,'获取失败');
+        return ReturnJson::json('err',1,[]);
+    }
+
+    /**
+     * 获取当前分组的所有成员
+     * @param Request $request
+     * @return mixed
+     */
+    public function getWorkerGroup(Request $request)
+    {
+        $error = ReturnJson::parameter(['workid','group_id'],$request);
+        if($error) return $error;
+
+        $res = UserWork::with('workers:id,username,header')
+            -> where('work_id',$request->workid)
+            -> where('group_id',$request->group_id)
+            -> get();
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,[]);
     }
 
     /**
@@ -506,8 +524,7 @@ class MsgController extends Controller
         $error = ReturnJson::parameter(['workid','workerid'],$request);
         if($error) return $error;
 
-        $redis = $this -> redis;
-        $res = $redis -> hdel('group'.$request -> workid, $request -> workerid);
+        $res = UserWork::where('work_id',$request->workid) -> where('worker_id',$request->workerid) -> update(['group_id'=>0]);
         if($res) return ReturnJson::json('ok',0,'已删除');
         return ReturnJson::json('err',1,'删除失败');
     }
@@ -519,13 +536,11 @@ class MsgController extends Controller
      */
     public function editGrouping(Request $request)
     {
-        $error = ReturnJson::parameter(['workid','workerid','grouping_id'],$request);
+        $error = ReturnJson::parameter(['workid','workerid','group_id'],$request);
         if($error) return $error;
 
-        $redis = $this -> redis;
-        $res = $redis -> hset('group'.$request -> workid, $request -> workerid, $request -> grouping_id);
-        $data = $redis -> hget('group'.$request -> workid, $request -> workerid);
-        if($request -> grouping_id == $data) return ReturnJson::json('ok',0,'修改成功');
+        $data = $group = UserWork::where('work_id',$request->workid) -> where('worker_id',$request->workerid) -> update(['group_id'=>$request->grouping_id]);
+        if($data) return ReturnJson::json('ok',0,'修改成功');
         return ReturnJson::json('err',1,'修改失败');
     }
 
@@ -544,7 +559,7 @@ class MsgController extends Controller
         $redis = $this -> redis;
         $num = $redis -> zcard($request -> workid);
         $res = $redis -> zadd($request -> workid, ($num + 1), $request -> grouping_name);
-        if($res) return ReturnJson::json('ok',0,'添加成功');
+        if($res == 0 || $res == 1) return ReturnJson::json('ok',0,'添加成功');
         return ReturnJson::json('err',1,'添加失败');
     }
 
@@ -560,9 +575,15 @@ class MsgController extends Controller
 
         $redis = $this -> redis;
         $data = $redis -> zrange($request -> workid, 0, -1, true);
-        $data = array_flip($data);
-        if($data) return ReturnJson::json('ok',0,$data);
-        return ReturnJson::json('err',1,'获取失败');
+        $res = [];
+        if(is_array($data)){
+            foreach ($data as $k => $v){
+                $v = (int)$v;
+                $res[$v] = $k;
+            }
+        }
+        if($data|| $data == 0) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,[]);
     }
 
     /**
@@ -594,13 +615,36 @@ class MsgController extends Controller
      */
     public function delGroupingName(Request $request)
     {
-        $error = ReturnJson::parameter(['workid','grouping_name'],$request);
+        $error = ReturnJson::parameter(['workid','grouping_name','group_id'],$request);
         if($error) return $error;
 
-        $redis = $this -> redis;
+        $redis = $this->redis;
         $del = $redis -> zrem($request -> workid, $request -> grouping_name);
-        if($del) return ReturnJson::json('ok',0,'删除成功');
+        $res = UserWork::where('work_id',$request->workid) -> where('group_id',$request->group_id) -> where('status',1) -> update(['group_id'=>0]);
+
+        if($del && $res) return ReturnJson::json('ok',0,'删除成功');
         return ReturnJson::json('err',1,'删除失败');
+    }
+
+    /**
+     * 获取群成员的分组id
+     * @param Request $request
+     * @return mixed
+     */
+    public function getWorkerGroupByWork(Request $request)
+    {
+        $error = ReturnJson::parameter(['workid'],$request);
+        if($error) return $error;
+
+        $res = UserWork::where('work_id',$request->workid) -> where('status',1) -> select('worker_id','group_id') -> get() ->toArray();
+        if ($res){
+            $data = [];
+            foreach ($res as $v){
+                $data[$v['worker_id']] = $v['group_id'];
+            }
+            return ReturnJson::json('ok',0,$data);
+        }
+        return ReturnJson::json('err',1,[]);
     }
 
     /**

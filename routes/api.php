@@ -448,7 +448,10 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     Route::put('editGroupingName','ZhaoXian\Msg\MsgController@editGroupingName');
     //删除群分组
     Route::delete('delGroupingName','ZhaoXian\Msg\MsgController@delGroupingName');
-
+    //获取当前分组的所有成员
+    Route::get('getWorkerGroup','ZhaoXian\Msg\MsgController@getWorkerGroup');
+    //获取群成员的分组id
+    Route::get('getWorkerGroupByWork','ZhaoXian\Msg\MsgController@getWorkerGroupByWork');
 
 /**
  * 私聊

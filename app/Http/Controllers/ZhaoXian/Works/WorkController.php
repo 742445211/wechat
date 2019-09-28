@@ -135,10 +135,13 @@ class WorkController extends Controller
             -> join('recruiters','works.recruiter_id','=','recruiters.id')
             ->select($filed);
         $keyword = $request->keyword;
+        $cate = $request->cate;
         //根据title模糊搜索
         $keyword && $work       -> orWhere('works.title','like','%' . $keyword . '%');
         //根据address进行模糊搜索
         $keyword && $work       -> orWhere('works.address','like','%' . $keyword . '%');
+        //判断是否有分类
+        $cate && $work          -> where('works.cate',$cate);
 
         //查询上架中的工作，根据发布时间排序，查询5条
         $res = $work -> where('works.status',0)
@@ -224,4 +227,5 @@ class WorkController extends Controller
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败');
     }
+
 }
