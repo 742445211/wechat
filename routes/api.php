@@ -269,6 +269,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::get('getEducational','ZhaoXian\WorkEducational\WorkEducationalController@get');
         //获取员工工作经历（填写的简历）
         Route::get('getExperience','ZhaoXian\WorkExperience\WorkExperienceController@getWorkExperience');
+        //添加意向工作状态
+        Route::post('addIntention','ZhaoXian\WorkExperience\WorkExperienceController@addIntention');
         //获取员工银行卡号及开户行
         Route::get('getBank','Inter\Manage\ManageController@getBank');
         //员工添加银行卡号及开户行

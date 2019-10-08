@@ -38,9 +38,9 @@ class WorkExperienceController extends Controller
             'work_time'         => $request -> work_time,           //工作时间
             'city'              => implode('',$request -> city),                //工作城市
             'discribe'          => $request -> discribe,            //工作描述（100字内）
-            'intention_work'    => $request -> intention_work,      //意向工作
-            'intention_place'   => $request -> intention_place,     //意向地点
-            'intention_time'    => $request -> intention_time,      //意向工作时间
+            //'intention_work'    => $request -> intention_work,      //意向工作
+            //'intention_place'   => $request -> intention_place,     //意向地点
+            //'intention_time'    => $request -> intention_time,      //意向工作时间
         ];
         //更新workers表的工作经验时长
         go(function () use ($request){
@@ -51,8 +51,12 @@ class WorkExperienceController extends Controller
             $now = $now->experience + $year;
             Workers::where('id',$request->workerid) -> update(['experience' => $now]);
         });
-
-        $res = WorkExperience::insert($data);
+        if(count(WorkExperience::where('worker_id',$request->workerid)->select('id')->first())){
+            $res = WorkExperience::where('worker_id',$request->workerid) -> update($data);
+        }else{
+            $data['worker_id'] = $request->workerid;
+            $res = WorkExperience::insert($data);
+        }
         if($res) return ReturnJson::json('ok',0,'添加成功！');
         return ReturnJson::json('err',1,'添加失败！');
     }
@@ -73,7 +77,7 @@ class WorkExperienceController extends Controller
      */
     public function edit(Request $request)
     {
-        $error = ReturnJson::parameter(['workerid','id'],$request);
+        $error = ReturnJson::parameter(['workerid'],$request);
         if($error) return $error;
 
         $data = [
@@ -83,11 +87,8 @@ class WorkExperienceController extends Controller
             'work_time'         => $request -> work_time,           //工作时间
             'city'              => $request -> city,                //工作城市
             'discribe'          => $request -> discribe,            //工作描述（100字内）
-            'intention_work'    => $request -> intention_work,      //意向工作
-            'intention_place'   => $request -> intention_place,     //意向地点
-            'intention_time'    => $request -> intention_time       //意向工作时间
         ];
-        $res = WorkExperience::where('worker_id',$request->workerid) -> where('id',$request->id) -> update($data);
+        $res = WorkExperience::where('worker_id',$request->workerid) -> update($data);
         //更新workers表的工作经验时长
         go(function () use ($request){
             \co::sleep(0.25);
@@ -102,6 +103,31 @@ class WorkExperienceController extends Controller
 
         if($res) return ReturnJson::json('ok',0,'修改成功！');
         return ReturnJson::json('err',1,'修改失败！');
+    }
+
+    /**
+     * 添加意向工作状态
+     * @param Request $request
+     * @return mixed
+     */
+    public function addIntention(Request $request)
+    {
+        $error = ReturnJson::parameter(['workerid'],$request);
+        if($error) return $error;
+
+        $data = [
+            'intention_work'    => $request -> intention_work,      //意向工作
+            'intention_place'   => $request -> intention_place,     //意向地点
+            'intention_time'    => $request -> intention_time       //意向工作时间
+        ];
+        if(count(WorkExperience::where('worker_id',$request->workerid)->select('id')->first())){
+            $res = WorkExperience::where('worker_id',$request->workerid) -> update($data);
+        }else{
+            $data['worker_id'] = $request->workerid;
+            $res = WorkExperience::insert($data);
+        }
+        if($res) return ReturnJson::json('ok',0,'添加成功');
+        return ReturnJson::json('err',1,'添加失败');
     }
 
     /**

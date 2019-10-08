@@ -90,6 +90,8 @@ class ManageController extends Controller
         $data['residence']    = $request -> residence;  //现住地址
         $data['created_at']   = date('Y-m-d H:m:i',time());
         $token = Hash::make($request -> openid);
+        $redis = Redis::connection('census');
+        $redis->decr('registered');
         $res = Workers::insertGetId($data);
         if($res){
             if(Redis::set('job_' . $res,$token)) return ['msg'=>'ok','code'=>0,'result'=>['token'=>$token,'id'=>$res,'username'=>$data['username'],'header'=>$data['header']]];

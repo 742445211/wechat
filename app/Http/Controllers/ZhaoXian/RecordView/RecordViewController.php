@@ -28,7 +28,11 @@ class RecordViewController extends Controller
             'work_id'       => $request -> workid,
             'created_at'    => time()
         ];
-        $res = ViewWork::insert($data);
+        if(count(ViewWork::where('worker_id',$request->workerid)->where('work_id',$request->workid)->select('id')->first())){
+            return ReturnJson::json('ok',0,'记录已存在');
+        }else{
+            $res = ViewWork::insert($data);
+        }
         if($res) return ReturnJson::json('ok',0,'记录成功');
         return ReturnJson::json('err',1,'记录失败');
     }
@@ -80,7 +84,11 @@ class RecordViewController extends Controller
             'worker_id'         => $request -> workerid,
             'created_at'        => time()
         ];
-        $res = ViewWorker::insert($data);
+        if(count(ViewWorker::where('worker_id',$request->workerid)->where('recruit_id',$request->recruit_id)->select('id')->first())){
+            return ReturnJson::json('ok',0,'记录已存在');
+        }else{
+            $res = ViewWorker::insert($data);
+        }
         if($res) return ReturnJson::json('ok',0,'记录成功');
         return ReturnJson::json('err',1,'记录失败');
     }

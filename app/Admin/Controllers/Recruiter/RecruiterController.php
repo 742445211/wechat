@@ -100,7 +100,12 @@ class RecruiterController extends Controller
                 $show->header('头像')->image(90,90);
                 $show->username('姓名');
                 $show->idcard('身份证号');
-
+                $show->sex('性别')->as(function ($sex){
+                    return $sex == 0 ? '男' : '女';
+                });
+                $show->is_company('类别')->as(function ($is_company){
+                    return $is_company == 0 ? '个人' : $this->company;
+                });
             }));
     }
 }

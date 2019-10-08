@@ -579,6 +579,8 @@ class ManageController extends Controller
         ];
         $msg = FromId::sendInterFormid($result,$request->workerid);
 
+        SendSms::send($openid->phone,112442);
+
         $res = UserWork::where('worker_id',$request->workerid) -> where('work_id',$request->workid) -> update(['status' => 0]);
         if($res){
             go(function () use ($request){
@@ -609,7 +611,7 @@ class ManageController extends Controller
 
         $token = Redis::get('rec_' . $request -> id);
         if($token != $request->token) return ReturnJson::json('err',1,'你已在其他地方登陆');
-        $res = Workers::with('experiences:intention_work,intention_place')
+        $res = Workers::with('experiences:intention_work,intention_place,worker_id')
             -> where('status',1)
             -> select('id','header','username','experience','education','created_at')
             -> orderBy('id','desc')

@@ -7,6 +7,7 @@ namespace App\Admin\Controllers\Recruiter;
 use App\Facades\FromId;
 use Encore\Admin\Actions\RowAction;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Redis;
 
 class PassAuth extends RowAction
 {
@@ -28,6 +29,9 @@ class PassAuth extends RowAction
             //"emphasis_keyword" => ''
         ];
         FromId::sendRecruitFromid($data,$result['id']);
+        $redis = Redis::connection('census');
+        $redis->incr('certified');
+        $redis->decr('uncertified');
         if($res) return $this->response()->success('已通过')->refresh();
     }
 

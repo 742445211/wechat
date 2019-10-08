@@ -189,7 +189,7 @@ class Sendsms
         $res = Sendsms::postCurl($url,'','json');
         $res = json_decode($res);
         if($res->errcode == 0){
-            if($res->enterprise_name == $company){
+            if(isset($res->enterprise_name) && $res->enterprise_name == $company){
                 return false;
             }
             return ReturnJson::json('err',13,'营业执照与公司名不匹配');
