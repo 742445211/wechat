@@ -619,4 +619,23 @@ class ManageController extends Controller
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败');
     }
+
+    /**
+     * 获取所有简历
+     * @param Request $request
+     * @return mixed
+     */
+    public function getAllResume(Request $request)
+    {
+        $error = ReturnJson::parameter(['id'],$request);
+        if($error) return $error;
+
+        $res = Recruiters::with(['works'=>function($query){
+            $query->with(['allWorker'=>function($worker){
+                $worker->with('experiences:intention_work,intention_place,worker_id')->select('workers.id','header','username','experience','education')->get();
+            }])->select('id','recruiter_id')->get();
+        }])->where('id',$request->id)->select('id')->first();
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,'获取失败');
+    }
 }

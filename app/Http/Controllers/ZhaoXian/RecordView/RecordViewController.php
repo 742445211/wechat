@@ -49,7 +49,7 @@ class RecordViewController extends Controller
 
         //获取当前B端用户的在招工作
         $work_id = Works::where('recruiter_id',$request->id)
-            -> where('status',0)
+            //-> where('status',0)
             -> select('id')
             -> get()
             -> toArray();

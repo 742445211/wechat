@@ -52,6 +52,11 @@ class Works extends Model
         return $this->belongsToMany('App\Model\Workers','user_work','work_id','worker_id','id','id') -> wherePivot('status',4) -> withTimestamps();
     }
 
+    public function allWorker()
+    {
+        return $this->belongsToMany('App\Model\Workers','user_work','work_id','worker_id','id','id') ->withPivot('status') -> withTimestamps();
+    }
+
     public function comment()
     {
         return $this->hasMany('App\Model\Comment','work_id','id');

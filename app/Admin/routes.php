@@ -23,4 +23,6 @@ Route::group([
     $router->resource('recruiter',Recruiter\RecruiterController::class);
 
     $router->resource('cate',Cate\CateController::class);
+
+    $router->resource('feedback',Feedback\FeedbackController::class);
 });

@@ -14,6 +14,6 @@ class ViewWorker extends Model
 
     public function recruiters()
     {
-        return $this->hasOne('App\Model\Recruiters','recruit_id','id');
+        return $this->hasOne('App\Model\Recruiters','id','recruit_id');
     }
 }

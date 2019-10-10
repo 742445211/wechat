@@ -35,11 +35,12 @@ class CommentController extends Controller
             'worker_id'     => $worker_id,                          //员工ID
             'wages'         => $request -> wages,                   //工资评分
             'service'       => $request -> service,                 //服务评分
-            'satisfaction'  => $request -> satisfaction,            //工作满意度评分
+            //'satisfaction'  => $request -> satisfaction,            //工作满意度评分
             'synthesize'    => $request -> synthesize,              //综合评分
             'comment'       => $request -> comment,                 //内容
             'interview'     => $request -> interview,               //面试综合
-            'offset'        => json_encode($request -> offset),                  //面试评价选项
+            'offset'        => $request -> offset,                  //面试评价选项
+            'ambient'       => $request -> ambient,                 //工作环境评分
             'content'       => $request -> content,                 //面试内容文字评价
             'created_at'    => date('Y-m-d H:i:s',time()),
         ];
@@ -114,5 +115,36 @@ class CommentController extends Controller
             -> update(['status'=>1]);
         if($res) return ReturnJson::json('ok',0,'删除成功！');
         return ReturnJson::json('err',1,'删除失败！');
+    }
+
+    /**
+     * 获取b端用户的综合评分
+     * @param Request $request
+     * @return mixed
+     */
+    public function fraction(Request $request)
+    {
+        $error = ReturnJson::parameter(['id'],$request);
+        if($error) return $error;
+
+        $data = Works::with('comment')->where('recruiter_id',$request->id)->select('id')->get()->toArray();
+        if($data){
+            $comment = [];
+            foreach($data as $item){
+                if(count($item['comment'])){
+                    foreach ($item['comment'] as $v){
+                        array_push($comment,$v);
+                    }
+                }
+            }
+            if(count($comment) == 0) return ReturnJson::json('ok',0,0);
+            $fraction = 0;
+            foreach($comment as $value){
+                $fraction += $value['wages'] + $value['service'] + $value['ambient'] + $value['synthesize'];
+            }
+            $fraction = $fraction / 4 / count($comment);
+            return ReturnJson::json('ok',0,$fraction);
+        }
+        return ReturnJson::json('err',1,'服务器忙');
     }
 }

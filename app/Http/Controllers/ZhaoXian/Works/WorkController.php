@@ -136,12 +136,21 @@ class WorkController extends Controller
             ->select($filed);
         $keyword = $request->keyword;
         $cate = $request->cate;
-        //根据title模糊搜索
-        $keyword && $work       -> orWhere('works.title','like','%' . $keyword . '%');
-        //根据address进行模糊搜索
-        $keyword && $work       -> orWhere('works.address','like','%' . $keyword . '%');
+
         //判断是否有分类
         $cate && $work          -> where('works.cate',$cate);
+        //根据title模糊搜索
+        $keyword && $work       -> Where('works.title','like','%' . $keyword . '%');
+        //根据address进行模糊搜索
+        $keyword && $work       -> Where('works.address','like','%' . $keyword . '%');
+
+        go(function () use ($keyword){
+            \co::sleep(1);
+            if($keyword != ''){
+                $redis = Redis::connection('keyword');
+                $redis->zincrby('keyword',1,$keyword);
+            }
+        });
 
         //查询上架中的工作，根据发布时间排序，查询5条
         $res = $work -> where('works.status',0)
@@ -149,6 +158,21 @@ class WorkController extends Controller
             ->paginate(5);
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::josn('err',1,'获取失败！');
+    }
+
+    /**
+     * 获取热门关键词
+     * @return mixed
+     */
+    public function getKeyword()
+    {
+        $redis = Redis::connection('keyword');
+        $data = $redis->zrevrangebyscore('keyword','+inf','-inf');
+        if($data){
+            $keyword = array_slice($data,0,8);
+            return ReturnJson::json('ok',0,$keyword);
+        }
+        return ReturnJson::json('err',1,[]);
     }
 
     /**

@@ -70,7 +70,7 @@ class CollectionController extends Controller
         $error = ReturnJson::parameter(['workerid'],$request);
         if($error) return $error;
 
-        $res = Collection::with('works') -> where('worker_id',$request->workerid) -> where('status',0) -> get();
+        $res = Collection::with(['works','workers']) -> where('worker_id',$request->workerid) -> where('status',0) -> get();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败！');
     }
