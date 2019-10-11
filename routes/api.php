@@ -239,6 +239,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
         //我的分数
         Route::get('fraction','ZhaoXian\Comment\CommentController@fraction');
+        //通过B端用户获取评论
+        Route::get('getCommentByRec','ZhaoXian\Comment\CommentController@getCommentByRec');
 
         /**
          * B端部分聊天接口

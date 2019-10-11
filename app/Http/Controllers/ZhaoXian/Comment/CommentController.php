@@ -139,12 +139,40 @@ class CommentController extends Controller
             }
             if(count($comment) == 0) return ReturnJson::json('ok',0,0);
             $fraction = 0;
+            $wages = 0;
+            $service = 0;
+            $ambient = 0;
             foreach($comment as $value){
                 $fraction += $value['wages'] + $value['service'] + $value['ambient'] + $value['synthesize'];
+                $wages += $value['wages'];
+                $service += $value['service'];
+                $ambient += $value['ambient'];
             }
             $fraction = $fraction / 4 / count($comment);
-            return ReturnJson::json('ok',0,$fraction);
+            $wages = $wages / count($comment);
+            $service = $service / count($comment);
+            $ambient = $ambient / count($comment);
+            return ReturnJson::json('ok',0,['fraction' => $fraction,'wages' => $wages,'service' => $service,'ambient' => $ambient]);
         }
         return ReturnJson::json('err',1,'服务器忙');
+    }
+
+    /**
+     * 通过B端用户获取评论
+     * @param Request $request
+     * @return mixed
+     */
+    public function getCommentByRec(Request $request)
+    {
+        $error = ReturnJson::parameter(['id'],$request);
+        if($error) return $error;
+
+        $res = Works::with(['comment'=>function($query){
+            $query->with('workers:id,username,header')->select('work_id','worker_id','comment','created_at')->get();
+        }])->where('recruiter_id',$request->id)
+            -> select('id')
+            -> get();
+        if($res) return ReturnJson::json('ok',0,$res);
+        return ReturnJson::json('err',1,'获取失败');
     }
 }
