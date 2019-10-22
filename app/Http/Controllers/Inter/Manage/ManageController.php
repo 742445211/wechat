@@ -53,7 +53,7 @@ class ManageController extends Controller
             //存在返回token
             $token = Hash::make($json['openid']);
             Redis::set('job_' . $isFirst->id,$token);//token存入redis，key为rec_加上用户ID
-            return ['msg'=>'ok','code'=>0,'result'=>['token'=>$token,'id'=>$isFirst->id,'openid'=>$json['openid']]];
+            return ['msg'=>'ok','code'=>0,'result'=>['token'=>$token,'id'=>$isFirst->id,'openid'=>$json['openid'],'header'=>$isFirst->header]];
         }else{
             return ['msg'=>'ok','code'=>1,'result'=>['openid'=>$json['openid'],'session_key'=>$json['session_key']]];
         }
@@ -388,11 +388,31 @@ class ManageController extends Controller
      */
     public function getWorkByRecruiter(Request $request)
     {
-        $error = ReturnJson::parameter(['recruiter_id'],$request);
+        $error = ReturnJson::parameter(['recruiter_id','id'],$request);
         if($error) return $error;
 
-        $select = ['id','title','header'];
-        $res = Works::where('recruiter_id',$request->recruiter_id) -> where('status',0) -> select($select) -> get();
+        $res = Recruiters::with(['works'=>function($query) use($request){
+            $query->with(['userWork'=>function($worker) use($request){
+                $worker->where('worker_id',$request->id)->select('work_id','status')->get();
+            }])->where('status',0)->get();
+        }]) -> where('id',$request->recruiter_id) -> where('status',1) -> paginate(4) -> toArray();
+        if(count($res['data']) != 0){
+            $date = $res['data'][0]['idcard'];
+            $brithday = substr($date,6,8);
+
+            $n_year = date('Y');
+            $n_month= date('m');
+            $n_day  = date('d');
+            $year   = date('Y',strtotime($brithday));
+            $month  = date('m',strtotime($brithday));
+            $day    = date('d',strtotime($brithday));
+            if($n_month >= $month && $n_day >= $day){
+                $res['data'][0]['age'] = $n_year - $year + 1;
+            }else{
+                $res['data'][0]['age'] = $n_year - $year;
+            }
+        }
+
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败！');
     }
@@ -447,5 +467,10 @@ class ManageController extends Controller
         $res = Workers::where('id',$request->id) -> select('id','bank','bank_number','bank_user') -> first();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败');
+    }
+
+    public function getError(Request $request)
+    {
+        Redis::set('ERROR',$request->data);
     }
 }

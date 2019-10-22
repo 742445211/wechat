@@ -36,7 +36,7 @@ class BannerController extends Controller
             });
         $grid->column('created_at', __('创建时间'));
         $grid->actions(function ($actions){
-            $actions -> disableDelete();
+            //$actions -> disableDelete();
             $actions -> disableView();
             $actions -> add(new DeleteBanner);
         });

@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Model\Describe;
 use App\Model\Works;
 use App\Model\WorksGeo;
+use Co\Channel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -130,19 +131,25 @@ class WorkController extends Controller
     public function get(Request $request)
     {
         //$distance = isset($request -> distance) ? $request -> distance :
-        $filed = ['works.id','works.title','works.header as image','works.type','works.wages','works.cycle','works.recruiter_id','works.welfare','works.cycle','works.address','recruiters.username','recruiters.header'];       //规定要搜索的字段
+        $filed = ['cate','works.id','works.title','works.header as image','works.type','works.wages','works.cycle','works.recruiter_id','works.welfare','works.cycle','works.address','recruiters.username','recruiters.header'];       //规定要搜索的字段
         $work = DB::table('works')
             -> join('recruiters','works.recruiter_id','=','recruiters.id')
-            ->select($filed);
+            -> select($filed);
         $keyword = $request->keyword;
         $cate = $request->cate;
 
-        //判断是否有分类
-        $cate && $work          -> where('works.cate',$cate);
         //根据title模糊搜索
-        $keyword && $work       -> Where('works.title','like','%' . $keyword . '%');
+        $keyword && $work       -> orWhere(function ($query) use($keyword,$cate){
+                $query->where('works.title','like','%' . $keyword . '%')->where('works.status',0)->when($cate,function ($get) use($cate){
+                    $get->where('works.cate',$cate)->get();
+                })->get();
+        });
         //根据address进行模糊搜索
-        $keyword && $work       -> Where('works.address','like','%' . $keyword . '%');
+        $keyword && $work       -> orWhere(function ($query) use($keyword,$cate){
+                $query->where('works.address','like','%' . $keyword . '%')->where('works.status',0)->when($cate,function ($get) use($cate){
+                    $get->where('works.cate',$cate)->get();
+                })->get();
+        });
 
         go(function () use ($keyword){
             \co::sleep(1);
@@ -153,9 +160,17 @@ class WorkController extends Controller
         });
 
         //查询上架中的工作，根据发布时间排序，查询5条
-        $res = $work -> where('works.status',0)
-            ->orderBy('works.created_at','desc')
-            ->paginate(5);
+        if($cate){
+            $res = $work -> where('works.status',0)
+                -> where('works.cate',$cate)
+                -> orderBy('works.created_at','desc')
+                -> paginate(5);
+        }else{
+            $res = $work -> where('works.status',0)
+                -> orderBy('works.created_at','desc')
+                -> paginate(5);
+        }
+
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::josn('err',1,'获取失败！');
     }
@@ -167,7 +182,13 @@ class WorkController extends Controller
     public function getKeyword()
     {
         $redis = Redis::connection('keyword');
-        $data = $redis->zrevrangebyscore('keyword','+inf','-inf');
+        $chan = new Channel();
+        go(function () use($redis,$chan){
+            $data = $redis->zrevrangebyscore('keyword','+inf','-inf');
+            $chan -> push($data);
+        });
+        //$data = $redis->zrevrangebyscore('keyword','+inf','-inf');
+        $data = $chan -> pop();
         if($data){
             $keyword = array_slice($data,0,8);
             return ReturnJson::json('ok',0,$keyword);

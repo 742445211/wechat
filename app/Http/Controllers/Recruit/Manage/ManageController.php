@@ -57,7 +57,7 @@ class ManageController extends Controller
             //存在返回token
             $token = Hash::make($json['openid']);
             Redis::set('rec_' . $isFirst->id,$token);//token存入redis，key为rec_加上用户ID
-            return ReturnJson::json('ok',0,['token'=>$token,'id'=>$isFirst->id,'username'=>$isFirst->username]);
+            return ReturnJson::json('ok',0,['token'=>$token,'id'=>$isFirst->id,'username'=>$isFirst->username,'header'=>$isFirst->header]);
         }else{
             return ReturnJson::json('ok',1,$json['openid']);
         }
@@ -637,5 +637,20 @@ class ManageController extends Controller
         }])->where('id',$request->id)->select('id')->first();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败');
+    }
+
+    /**
+     * 是否通过审核
+     * @param Request $request
+     * @return mixed
+     */
+    public function isPass(Request $request)
+    {
+        $error = ReturnJson::parameter(['id'],$request);
+        if($error) return $error;
+
+        $res = Recruiters::where('id',$request->id)->select('status') -> first();
+        if($res->status == 1) return ReturnJson::json('ok',0,[]);
+        return ReturnJson::json('err',1,[]);
     }
 }

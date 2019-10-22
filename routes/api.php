@@ -241,6 +241,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         Route::get('fraction','ZhaoXian\Comment\CommentController@fraction');
         //通过B端用户获取评论
         Route::get('getCommentByRec','ZhaoXian\Comment\CommentController@getCommentByRec');
+        //获取好一般差
+        Route::get('getComOption','ZhaoXian\Comment\CommentController@getComOption');
 
         /**
          * B端部分聊天接口
@@ -370,6 +372,12 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
          */
         //获取消息记录，聊天记录下拉
         Route::get('getGroupMsg','ZhaoXian\Msg\MsgController@getGroupMsg');
+
+
+
+
+        //c端ERROR
+        Route::get('error','Inter\Manage\ManageController@getError');
     });
 
 
@@ -522,6 +530,6 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
     Route::get('getall',function (){
         Gateway::$registerAddress = '127.0.0.1:1238';
-        $res = Gateway::getClientSessionsByGroup(66);
+        $res = Gateway::getAllUidList();
         return $res;
     });

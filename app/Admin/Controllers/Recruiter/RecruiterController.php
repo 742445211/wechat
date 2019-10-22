@@ -96,6 +96,9 @@ class RecruiterController extends Controller
         return $content->header('用户详情')
             -> description('详情')
             -> body(Admin::show(Recruiters::findOrFail($request->id),function (Show $show){
+                $show->panel()->tools(function ($tools){
+                    $tools->disableEdit();
+                });
                 $show->id('ID');
                 $show->header('头像')->image(90,90);
                 $show->username('姓名');

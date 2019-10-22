@@ -77,6 +77,9 @@ class WorksController extends Controller
             ->description('详情')
             ->body(\Encore\Admin\Facades\Admin::show(Works::findOrFail($id), function (Show $show){
                 $cycle = ['小时','天','月'];
+                $show->panel()->tools(function ($tools){
+                    $tools->disableEdit();
+                });
                 $show->panel()
                     ->style('danger');
                 $show->title('工作标题');

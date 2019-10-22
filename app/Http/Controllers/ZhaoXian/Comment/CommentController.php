@@ -128,7 +128,7 @@ class CommentController extends Controller
         if($error) return $error;
 
         $data = Works::with('comment')->where('recruiter_id',$request->id)->select('id')->get()->toArray();
-        if($data){
+        if(count($data)){
             $comment = [];
             foreach($data as $item){
                 if(count($item['comment'])){
@@ -174,5 +174,44 @@ class CommentController extends Controller
             -> get();
         if($res) return ReturnJson::json('ok',0,$res);
         return ReturnJson::json('err',1,'获取失败');
+    }
+
+    /**
+     * 获取评论分数
+     * @param Request $request
+     * @return mixed
+     */
+    public function getComOption(Request $request)
+    {
+        $error = ReturnJson::parameter(['id'],$request);
+        if($error) return $error;
+
+        $res = Works::with('comment:work_id,interview') -> where('recruiter_id',$request->id) -> select('id') -> get() -> toArray();
+        if($res) {
+            $comment = [
+                'difference'    => 0,
+                'commonly'      => 0,
+                'good'          => 0
+            ];
+            $data = [];
+            foreach ($res as $k=>$v){
+                if($v['comment'] != []){
+                    foreach ($v['comment'] as $item){
+                        array_push($data,$item);
+                    }
+                }
+            }
+            foreach ($data as $value){
+                if($value['interview'] == 0){
+                    $comment['difference'] += 1;
+                }elseif ($value['interview'] == 1){
+                    $comment['commonly'] += 1;
+                }elseif ($value['interview'] == 2){
+                    $comment['good'] += 1;
+                }
+            }
+            return ReturnJson::json('ok',0,$comment);
+        }
+        return ReturnJson::json('err',1,[]);
     }
 }

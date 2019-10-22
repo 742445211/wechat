@@ -70,6 +70,9 @@ class WorkersController extends Controller
         return $content->header('用户详情')
             ->description('详情')
             ->body(\Encore\Admin\Facades\Admin::show(Workers::findOrFail($request->id),function (Show $show){
+                $show->panel()->tools(function ($tools){
+                    $tools->disableEdit();
+                });
                 $show->id('ID');
                 $show->header('头像')->image();
                 $show->username('姓名');
