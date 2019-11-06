@@ -96,6 +96,7 @@ class FromId
     /**
      * 获取formid
      * @param $is_rec
+     * @param $id
      * @return bool|string
      */
     public function getFormID($is_rec, $id)
@@ -103,7 +104,7 @@ class FromId
         $offset = $is_rec == 0 ? 'C' : 'B';
         $redis = Redis::connection('formId');
         $time = time();
-        $redis -> zremrangebyscore('B1',0,$time - 596160);
+        $redis -> zremrangebyscore($offset . $id,0,$time - 596160);
         $res = $redis -> zrange($offset . $id,0,0);
         $redis -> zremrangebyrank($offset . $id,0,0);
         if($res) return $res[0];

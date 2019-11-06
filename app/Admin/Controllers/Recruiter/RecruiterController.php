@@ -109,6 +109,9 @@ class RecruiterController extends Controller
                 $show->is_company('类别')->as(function ($is_company){
                     return $is_company == 0 ? '个人' : $this->company;
                 });
+                $show->license('营业执照')->image();
+                $show->position('身份证正面')->image();
+                $show->back('身份证背面')->image();
             }));
     }
 }

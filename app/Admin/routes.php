@@ -25,4 +25,6 @@ Route::group([
     $router->resource('cate',Cate\CateController::class);
 
     $router->resource('feedback',Feedback\FeedbackController::class);
+
+    $router->resource('type',Type\TypeController::class);
 });
